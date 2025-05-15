@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>動態光線追蹤 - 可移動視角</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      canvas {
+        border: 1px solid black;
+        cursor: move;
+      }
+      .info {
+        margin-top: 10px;
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="600" height="400"></canvas>
+    <div class="info">右鍵拖曳或按住Shift+左鍵拖曳可旋轉視角</div>
+
+    <script>
+      const W = 600;
+      const H = 400;
+
+      const canvas = document.getElementById("canvas");
+      const dc = canvas.getContext("2d");
+      const imageData = dc.createImageData(W, H);
+      const data = imageData.data;
+
+      let T = 0;
+
+      // 攝像機參數
+      let angleX = 0; // 垂直角度
+      let angleY = 0; // 水平角度
+      let zoomZ = 50; // 攝像機距離
+      let cx = 0,
+        cy = 0,
+        cz = 0; // 攝像機位置
+
+      // 滑鼠控制變數
+      let mouseDown = false;
+      let oldX, oldY;
+      let isRightMouseDown = false;
+
+      function updateCamera() {
+        // 根據角度計算攝像機位置
+        cx = zoomZ * Math.sin(angleY) * Math.cos(angleX);
+        cy = zoomZ * Math.sin(angleX);
+        cz = zoomZ * Math.cos(angleY) * Math.cos(angleX);
+      }
+
+      function loop() {
+        T += 0.1;
+        updateCamera();
+        rayTrace(T);
+        dc.putImageData(imageData, 0, 0);
+        requestAnimationFrame(loop);
+      }
+
+      function rayTrace(T) {
+        const spheres = [
+          { x: -3, y: Math.sin(T) * 2, z: 8, r: 2, R: 255, G: 255, B: 128 },
+          { x: 5, y: 2 + Math.cos(T) * 4, z: 20, r: 4, R: 128, G: 255, B: 255 },
+          { x: 0, y: 18, z: 10, r: 16, R: 255, G: 128, B: 255 },
+        ];
+        const numSpheres = spheres.length;
+        const iterations = 10;
+        let sp;
+
+        for (let x = 0; x < W; x++) {
+          for (let y = 0; y < H; y++) {
+            let R = 255;
+            let G = 255;
+            let B = 255;
+
+            // 構建攝像機坐標系
+            // 視線方向為z軸
+            let viewZ = { x: -cx, y: -cy, z: -cz };
+            const viewZLen = Math.sqrt(
+              viewZ.x * viewZ.x + viewZ.y * viewZ.y + viewZ.z * viewZ.z
+            );
+            viewZ.x /= viewZLen;
+            viewZ.y /= viewZLen;
+            viewZ.z /= viewZLen;
+
+            // 上方向預設為世界坐標的y軸，然後用叉積獲取右方向
+            let viewUp = { x: 0, y: 1, z: 0 };
+            // 如果視線方向接近y軸，選擇z軸作為上方向
+            // if (Math.abs(viewZ.y) > 0.99) {
+            //   viewUp = { x: 0, y: 0, z: 1 };
+            // }
+
+            // 計算右方向向量 (右手坐標系)
+            let viewX = {
+              x: viewUp.y * viewZ.z - viewUp.z * viewZ.y,
+              y: viewUp.z * viewZ.x - viewUp.x * viewZ.z,
+              z: viewUp.x * viewZ.y - viewUp.y * viewZ.x,
+            };
+            const viewXLen = Math.sqrt(
+              viewX.x * viewX.x + viewX.y * viewX.y + viewX.z * viewX.z
+            );
+            viewX.x /= viewXLen;
+            viewX.y /= viewXLen;
+            viewX.z /= viewXLen;
+
+            // 計算最終的上方向向量
+            let viewY = {
+              x: viewZ.y * viewX.z - viewZ.z * viewX.y,
+              y: viewZ.z * viewX.x - viewZ.x * viewX.z,
+              z: viewZ.x * viewX.y - viewZ.y * viewX.x,
+            };
+
+            // 相機參數
+            const fov = (45 * Math.PI) / 180;
+            const aspect = W / H;
+            const tanFov = Math.tan(fov / 2);
+
+            // 計算像素點對應的世界坐標方向
+            const pixelX = (x - W / 2) / (W / 2);
+            const pixelY = -(H / 2 - y) / (H / 2);
+
+            let Lx =
+              viewZ.x +
+              pixelX * tanFov * aspect * viewX.x +
+              pixelY * tanFov * viewY.x;
+            let Ly =
+              viewZ.y +
+              pixelX * tanFov * aspect * viewX.y +
+              pixelY * tanFov * viewY.y;
+            let Lz =
+              viewZ.z +
+              pixelX * tanFov * aspect * viewX.z +
+              pixelY * tanFov * viewY.z;
+
+            // 歸一化光線方向
+            const L = Math.sqrt(Lx * Lx + Ly * Ly + Lz * Lz);
+            Lx /= L;
+            Ly /= L;
+            Lz /= L;
+
+            let found = -1;
+
+            // 光線追蹤迭代
+            for (let t = 0; t < iterations; t++) {
+              found = -1;
+              let dist = 1e10;
+
+              // 檢查與所有球體的相交
+              for (let s = 0; s < numSpheres; s++) {
+                sp = spheres[s];
+                const Sx = cx - sp.x;
+                const Sy = cy - sp.y;
+                const Sz = cz - sp.z;
+                const LS = Lx * Sx + Ly * Sy + Lz * Sz;
+                const SS = Sx * Sx + Sy * Sy + Sz * Sz;
+                const BB = LS * LS - (SS - sp.r * sp.r);
+
+                if (BB > 0) {
+                  const d = -LS - Math.sqrt(BB);
+                  if (d > 0 && d < dist) {
+                    found = s;
+                    dist = d;
+                  }
+                }
+              }
+
+              if (found >= 0) {
+                // 找到相交，計算顏色和反射
+                sp = spheres[found];
+                R = (R * sp.R) / 255;
+                G = (G * sp.G) / 255;
+                B = (B * sp.B) / 255;
+
+                // 更新光線位置
+                cx += Lx * dist;
+                cy += Ly * dist;
+                cz += Lz * dist;
+
+                // 計算反射方向
+                const Nx = cx - sp.x;
+                const Ny = cy - sp.y;
+                const Nz = cz - sp.z;
+                const NormSq = Nx * Nx + Ny * Ny + Nz * Nz;
+                const LN = (Lx * Nx + Ly * Ny + Lz * Nz) / NormSq;
+
+                Lx -= 2 * Nx * LN;
+                Ly -= 2 * Ny * LN;
+                Lz -= 2 * Nz * LN;
+              } else {
+                break;
+              }
+            }
+
+            // 恢復攝像機位置
+            updateCamera();
+
+            // 背景天空顏色
+            if (found == -1) {
+              const f0 = (3 + (-Lx - Ly - Lz)) / 4;
+              R = R * f0 * 0.9;
+              G = G * f0 * 0.9;
+              B = B * f0;
+            }
+
+            // 設置像素顏色
+            const n = (x + y * W) * 4;
+            data[n] = R;
+            data[n + 1] = G;
+            data[n + 2] = B;
+            data[n + 3] = 255;
+          }
+        }
+      }
+
+      // 滑鼠事件處理
+      canvas.onmousedown = function (e) {
+        e.preventDefault();
+        // 檢測是否為右鍵或按住Shift的左鍵
+        isRightMouseDown = e.button === 2 || (e.button === 0 && e.shiftKey);
+        if (isRightMouseDown) {
+          mouseDown = true;
+          oldX = e.offsetX;
+          oldY = e.offsetY;
+        }
+      };
+
+      canvas.onmousemove = function (e) {
+        if (mouseDown) {
+          // 更新角度
+          angleY -= (e.offsetX - oldX) * 0.01;
+          angleX += (e.offsetY - oldY) * 0.01;
+
+          // 限制垂直角度，防止翻轉
+          angleX = Math.max(angleX, -Math.PI / 2 + 0.01);
+          angleX = Math.min(angleX, Math.PI / 2 - 0.01);
+
+          // 更新滑鼠位置
+          oldX = e.offsetX;
+          oldY = e.offsetY;
+        }
+      };
+
+      document.onmouseup = function () {
+        mouseDown = false;
+      };
+
+      // 防止右鍵選單出現
+      canvas.oncontextmenu = function (e) {
+        e.preventDefault();
+        return false;
+      };
+
+      // 滑鼠滾輪縮放
+      canvas.onwheel = function (e) {
+        e.preventDefault();
+        zoomZ += e.deltaY * 0.01;
+        // 限制縮放範圍
+        zoomZ = Math.max(1, Math.min(zoomZ, 50));
+      };
+
+      // 初始化並開始渲染循環
+      updateCamera();
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>
