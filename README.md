@@ -3,6 +3,7 @@
 這是一個基於純 JavaScript 實現的即時光線追蹤渲染器，支持可移動的相機視角、動態場景和基本反射效果。
 [進入觀看](https://opming7788.github.io/Raytracing_test/raytracing_camera_move.html)
 
+![image](image.png)
 ## 功能特點
 
 - **即時光線追蹤**: 使用光線追蹤算法實現真實的光照和反射效果
