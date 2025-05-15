@@ -1,65 +1,66 @@
-# 動態光線追蹤器 (Dynamic Ray Tracer)
+# Dynamic Ray Tracer
 
-這是一個基於純 JavaScript 實現的即時光線追蹤渲染器，支持可移動的相機視角、動態場景和基本反射效果。
-[進入觀看](https://opming7788.github.io/Raytracing_test/raytracing_camera_move.html)
+This is a real-time ray tracing renderer implemented in pure JavaScript, supporting movable camera perspectives, dynamic scenes, and basic reflection effects.
+[View Demo](https://opming7788.github.io/Raytracing_test/raytracing_camera_move.html)
 
 ![image](image.png)
-## 功能特點
 
-- **即時光線追蹤**: 使用光線追蹤算法實現真實的光照和反射效果
-- **交互式相機控制**: 支持使用滑鼠拖曳旋轉視角、滾輪縮放
-- **動態場景**: 物體可以隨時間變化位置
-- **真實反射**: 光線可以在場景中多次反彈，創建反射效果
-- **純前端實現**: 無需後端服務器，完全在瀏覽器中運行
+## Features
 
-## 技術實現
+- **Real-time Ray Tracing**: Implements realistic lighting and reflection effects using ray tracing algorithms
+- **Interactive Camera Control**: Supports rotating the view with mouse drag and zooming with the scroll wheel
+- **Dynamic Scene**: Objects can change position over time
+- **Realistic Reflections**: Light rays can bounce multiple times in the scene, creating reflection effects
+- **Pure Frontend Implementation**: No backend server required, runs entirely in the browser
 
-### 核心技術
+## Technical Implementation
 
-- **HTML5 Canvas API**: 用於渲染像素
-- **光線追蹤算法**: 從每個像素發出光線，計算其與場景物體的交點和反射
-- **向量數學**: 處理 3D 空間中的光線方向、反射和相交計算
-- **相機模型**: 實現了完整的透視投影相機模型
-- **動畫循環**: 使用`requestAnimationFrame`實現平滑的渲染循環
+### Core Technologies
 
-### 光線追蹤流程
+- **HTML5 Canvas API**: Used for pixel rendering
+- **Ray Tracing Algorithm**: Emits rays from each pixel and calculates intersections with scene objects and reflections
+- **Vector Mathematics**: Handles ray directions, reflections, and intersection calculations in 3D space
+- **Camera Model**: Implements a complete perspective projection camera model
+- **Animation Loop**: Uses `requestAnimationFrame` for smooth rendering cycles
 
-1. 對於每個像素，從相機位置發射光線
-2. 檢測光線與場景物體的交點
-3. 在交點處計算反射光線
-4. 繼續追蹤反射光線與其他物體的交點
-5. 重複此過程數次，累積顏色值
-6. 將最終顏色值渲染到像素上
+### Ray Tracing Process
 
-### 相機系統
+1. For each pixel, emit a ray from the camera position
+2. Detect intersections between the ray and scene objects
+3. Calculate the reflected ray at the intersection point
+4. Continue tracing the reflected ray for intersections with other objects
+5. Repeat this process several times, accumulating color values
+6. Render the final color value to the pixel
 
-- **球面坐標系**: 使用水平角度(angleY)和垂直角度(angleX)控制相機方向
-- **正交基**: 計算相機的三個正交向量(viewX, viewY, viewZ)
-- **透視投影**: 使用視場角(FOV)和寬高比計算像素射線
+### Camera System
 
-### 交互控制
+- **Spherical Coordinate System**: Uses horizontal angle (angleY) and vertical angle (angleX) to control camera direction
+- **Orthogonal Basis**: Calculates the camera's three orthogonal vectors (viewX, viewY, viewZ)
+- **Perspective Projection**: Uses field of view (FOV) and aspect ratio to calculate pixel rays
 
-- **滑鼠拖曳**: 右鍵或 Shift+左鍵拖曳旋轉視角
-- **滑鼠滾輪**: 調整相機距離（縮放）
-- **視角限制**: 防止視角翻轉
+### Interactive Controls
 
-## 如何使用
+- **Mouse Drag**: Right-click or Shift+left-click drag to rotate the view
+- **Mouse Wheel**: Adjust camera distance (zoom)
+- **View Constraints**: Prevents the view from flipping
 
-1. 克隆此存儲庫
-2. 在瀏覽器中打開`raytracing_camera_move.html`
-3. 使用右鍵拖曳或 Shift+左鍵拖曳旋轉視角
-4. 使用滑鼠滾輪調整縮放
+## How to Use
 
-## 性能考量
+1. Clone this repository
+2. Open `raytracing_camera_move.html` in your browser
+3. Use right-click drag or Shift+left-click drag to rotate the view
+4. Use the mouse wheel to adjust zoom
 
-- 光線追蹤是計算密集型的，在低性能設備上可能會導致幀率下降
-- 目前實現使用的是基本光線追蹤，沒有使用加速結構
-- 場景中的球體數量和反射迭代次數對性能有顯著影響
+## Performance Considerations
 
-## 擴展可能性
+- Ray tracing is computationally intensive and may cause reduced frame rates on low-performance devices
+- The current implementation uses basic ray tracing without acceleration structures
+- The number of spheres in the scene and reflection iteration count significantly impact performance
 
-- 添加更多種類的幾何體（平面、三角形、立方體等）
-- 實現更複雜的材質（折射、散射、次表面散射）
-- 添加區域光源和軟陰影
-- 實現景深效果
-- 使用 Web Workers 或 GPU 加速（WebGL/WebGPU）提升性能
+## Potential Extensions
+
+- Add more types of geometry (planes, triangles, cubes, etc.)
+- Implement more complex materials (refraction, diffusion, subsurface scattering)
+- Add area light sources and soft shadows
+- Implement depth of field effects
+- Use Web Workers or GPU acceleration (WebGL/WebGPU) to improve performance
